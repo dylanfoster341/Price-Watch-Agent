@@ -36,11 +36,19 @@ export default function ChatWindow() {
     setError(null);
     setIsLoading(true);
 
+    // Price checks can involve several slow steps server-side (search, page
+    // fetches, a headless-browser render) — give the request real room, but
+    // still give up eventually instead of hanging forever on a dropped
+    // connection.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: nextMessages }),
+        signal: controller.signal,
       });
 
       const data = await res.json();
@@ -51,9 +59,14 @@ export default function ChatWindow() {
       }
 
       setMessages([...nextMessages, { role: "assistant", content: data.reply }]);
-    } catch {
-      setError("Couldn't reach the server. Check your connection and try again.");
+    } catch (err) {
+      setError(
+        err instanceof DOMException && err.name === "AbortError"
+          ? "That took too long and timed out. The stores it's checking may be slow to respond right now — try again, or with fewer stores."
+          : "Couldn't reach the server. Check your connection and try again.",
+      );
     } finally {
+      clearTimeout(timeout);
       setIsLoading(false);
     }
   }

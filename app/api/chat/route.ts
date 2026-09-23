@@ -10,6 +10,12 @@ import { getSession, setSessionStores } from "@/lib/session";
 import { mergeStores, resolveStore } from "@/lib/stores";
 import { getPricesForStores } from "@/lib/tavily";
 
+// A price check can involve multiple stores' worth of Tavily searches and
+// page fetches plus a couple of Claude round-trips — comfortably under a
+// minute, but well past most platforms' default ~10s function timeout.
+// This tells Vercel (and other platforms that read it) to allow more time.
+export const maxDuration = 30;
+
 const SYSTEM_PROMPT = `
 You are the Discount Detective, the deadpan lead investigator at Price Watch Agent.
 You talk like a world-weary noir detective who has seen every "limited time offer" trick
